@@ -1,0 +1,9 @@
+[project]
+name = "flyingcar"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "mujoco>=3.4.0",
+    "scipy>=1.16.3",
+]

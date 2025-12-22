@@ -1,0 +1,109 @@
+<mujoco model="flying_car">
+  <option gravity="0 0 -9.81" timestep="0.001"/>
+
+  <default>
+    <default class="thruster">
+      <geom contype="0" conaffinity="0"/>
+    </default>
+  </default>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.6 0.8 1.0" rgb2="0 0 0" width="512" height="512"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.4 0.4 0.4" rgb2="0.5 0.5 0.5" width="512" height="512"/>
+    <material name="grid" texture="grid" texrepeat="8 8" reflectance="0.1"/>
+    <material name="body_mat" rgba="0.8 0.2 0.2 1"/>
+    <material name="thruster_mat" rgba="0.2 0.2 0.8 1"/>
+    <material name="arrow_mat" rgba="0.2 0.8 0.2 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Ground plane -->
+    <geom name="ground" type="plane" size="10 10 0.1" material="grid"/>
+
+    <!-- Flying car body -->
+    <body name="chassis" pos="0 0 2">
+      <freejoint name="root"/>
+      <inertial pos="0 0 0" mass="40" diaginertia="1 2 2"/>
+
+      <!-- Main body: rectangular prism -->
+      <geom name="body" type="box" size="0.5 0.3 0.1" material="body_mat"/>
+
+      <!-- Forward arrow indicator -->
+      <geom name="arrow_shaft" type="box" pos="0.25 0 0.11" size="0.15 0.02 0.01" material="arrow_mat"/>
+      <geom name="arrow_head" type="box" pos="0.42 0 0.11" size="0.03 0.03 0.01" euler="0 0 45" material="arrow_mat"/>
+
+      <!-- Thruster 1: front-right -->
+      <body name="thruster_fr_pitch_body" pos="0.55 -0.35 0">
+        <joint name="thruster_fr_pitch" type="hinge" axis="0 1 0" limited="true" range="-45 45"/>
+        <geom name="thruster_fr_pitch_geom" class="thruster" type="box" pos="0 0 0" size="0.02 0.04 0.02" mass="4" material="thruster_mat"/>
+        <body name="thruster_fr_roll_body" pos="0 0 0">
+          <joint name="thruster_fr_roll" type="hinge" axis="1 0 0" limited="true" range="-45 45"/>
+          <site name="thruster_fr" pos="0 0 0" size="0.05"/>
+          <geom name="thruster_fr_geom" class="thruster" type="box" pos="0 0 -0.05" size="0.08 0.06 0.04" mass="5" material="thruster_mat"/>
+        </body>
+      </body>
+
+      <!-- Thruster 2: front-left -->
+      <body name="thruster_fl_pitch_body" pos="0.55 0.35 0">
+        <joint name="thruster_fl_pitch" type="hinge" axis="0 1 0" limited="true" range="-45 45"/>
+        <geom name="thruster_fl_pitch_geom" class="thruster" type="box" pos="0 0 0" size="0.02 0.04 0.02" mass="4" material="thruster_mat"/>
+        <body name="thruster_fl_roll_body" pos="0 0 0">
+          <joint name="thruster_fl_roll" type="hinge" axis="1 0 0" limited="true" range="-45 45"/>
+          <site name="thruster_fl" pos="0 0 0" size="0.05"/>
+          <geom name="thruster_fl_geom" class="thruster" type="box" pos="0 0 -0.05" size="0.08 0.06 0.04" mass="5" material="thruster_mat"/>
+        </body>
+      </body>
+
+      <!-- Thruster 3: rear-right -->
+      <body name="thruster_rr_pitch_body" pos="-0.55 -0.35 0">
+        <joint name="thruster_rr_pitch" type="hinge" axis="0 1 0" limited="true" range="-45 45"/>
+        <geom name="thruster_rr_pitch_geom" class="thruster" type="box" pos="0 0 0" size="0.02 0.04 0.02" mass="4" material="thruster_mat"/>
+        <body name="thruster_rr_roll_body" pos="0 0 0">
+          <joint name="thruster_rr_roll" type="hinge" axis="1 0 0" limited="true" range="-45 45"/>
+          <site name="thruster_rr" pos="0 0 0" size="0.05"/>
+          <geom name="thruster_rr_geom" class="thruster" type="box" pos="0 0 -0.05" size="0.08 0.06 0.04" mass="5" material="thruster_mat"/>
+        </body>
+      </body>
+
+      <!-- Thruster 4: rear-left -->
+      <body name="thruster_rl_pitch_body" pos="-0.55 0.35 0">
+        <joint name="thruster_rl_pitch" type="hinge" axis="0 1 0" limited="true" range="-45 45"/>
+        <geom name="thruster_rl_pitch_geom" class="thruster" type="box" pos="0 0 0" size="0.02 0.04 0.02" mass="4" material="thruster_mat"/>
+        <body name="thruster_rl_roll_body" pos="0 0 0">
+          <joint name="thruster_rl_roll" type="hinge" axis="1 0 0" limited="true" range="-45 45"/>
+          <site name="thruster_rl" pos="0 0 0" size="0.05"/>
+          <geom name="thruster_rl_geom" class="thruster" type="box" pos="0 0 -0.05" size="0.08 0.06 0.04" mass="5" material="thruster_mat"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- Thrusters apply force in the +z direction (up) in body frame -->
+    <general name="thrust_fr" site="thruster_fr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
+    <general name="thrust_fl" site="thruster_fl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
+    <general name="thrust_rr" site="thruster_rr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
+    <general name="thrust_rl" site="thruster_rl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
+
+    <!-- Thruster gimbal actuators (position control) -->
+    <position name="pitch_fr" joint="thruster_fr_pitch" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="roll_fr" joint="thruster_fr_roll" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="pitch_fl" joint="thruster_fl_pitch" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="roll_fl" joint="thruster_fl_roll" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="pitch_rr" joint="thruster_rr_pitch" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="roll_rr" joint="thruster_rr_roll" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="pitch_rl" joint="thruster_rl_pitch" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="roll_rl" joint="thruster_rl_roll" kp="100" ctrlrange="-0.785 0.785"/>
+  </actuator>
+
+  <sensor>
+    <!-- IMU sensors -->
+    <accelerometer name="imu_accel" site="thruster_fr"/>
+    <gyro name="imu_gyro" site="thruster_fr"/>
+    <framequat name="orientation" objtype="body" objname="chassis"/>
+    <framepos name="position" objtype="body" objname="chassis"/>
+    <framexaxis name="xaxis" objtype="body" objname="chassis"/>
+    <frameyaxis name="yaxis" objtype="body" objname="chassis"/>
+    <framezaxis name="zaxis" objtype="body" objname="chassis"/>
+  </sensor>
+</mujoco>
