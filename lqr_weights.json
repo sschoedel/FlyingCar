@@ -1,0 +1,46 @@
+{
+  "description": "LQR controller weights for flying car",
+  "Q": {
+    "position": {
+      "x": 104,
+      "y": 104,
+      "z": 205
+    },
+    "orientation": {
+      "roll": 52,
+      "pitch": 54,
+      "yaw": 54
+    },
+    "gimbal_pos": 4.0354545454545345,
+    "velocity": {
+      "vx": 10.0,
+      "vy": 10.0,
+      "vz": 10.0
+    },
+    "angular_velocity": {
+      "wx": 5.0,
+      "wy": 5.0,
+      "wz": 5.0
+    },
+    "gimbal_vel": 0.15712530712530892
+  },
+  "R": {
+    "thrust": 0.001,
+    "gimbal": 0.01
+  },
+  "test_scenario": {
+    "start_pos": [
+      0.0,
+      0.0,
+      2.0
+    ],
+    "start_yaw": -83,
+    "target_pos": [
+      4.0,
+      1.0,
+      3.0
+    ],
+    "target_yaw": 65,
+    "duration": 5.0
+  }
+}

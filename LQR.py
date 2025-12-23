@@ -1,6 +1,19 @@
+import json
 import mujoco
 import numpy as np
 from scipy import linalg
+
+
+def load_lqr_weights(filepath="lqr_weights.json"):
+    """Load LQR weights from JSON file."""
+    with open(filepath, 'r') as f:
+        return json.load(f)
+
+
+def save_lqr_weights(weights, filepath="lqr_weights.json"):
+    """Save LQR weights to JSON file."""
+    with open(filepath, 'w') as f:
+        json.dump(weights, f, indent=2)
 
 
 class FlyingCarLQR:
@@ -10,15 +23,17 @@ class FlyingCarLQR:
     Solves a single LQR problem for the full system state.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, weights=None):
         """
         Initialize the LQR controller.
 
         Args:
             model: MuJoCo model object
+            weights: Optional dict with Q and R weights (from JSON config)
         """
         # Store model reference
         self.model = model
+        self.weights = weights
 
         # Extract physical parameters from model
         self._extract_model_parameters()
@@ -27,6 +42,11 @@ class FlyingCarLQR:
         self._build_state_space()
 
         # Design LQR gain matrix
+        self._solve_lqr()
+
+    def update_weights(self, weights):
+        """Update weights and recompute LQR gain."""
+        self.weights = weights
         self._solve_lqr()
 
     def _extract_model_parameters(self):
@@ -117,45 +137,79 @@ class FlyingCarLQR:
         # qvel: [vx, vy, vz, wx, wy, wz, gimbal_joint_vels...]
         Q = np.eye(self.nx)
 
-        # Weight position errors (x, y, z)
-        Q[0, 0] = 100.0  # x
-        Q[1, 1] = 100.0  # y
-        Q[2, 2] = 200.0  # z
+        # Get weights from config or use defaults
+        if self.weights is not None:
+            qw = self.weights.get("Q", {})
+            pos = qw.get("position", {})
+            ori = qw.get("orientation", {})
+            vel = qw.get("velocity", {})
+            ang = qw.get("angular_velocity", {})
 
-        # Weight orientation errors (roll, pitch, yaw)
-        Q[3, 3] = 50.0  # roll
-        Q[4, 4] = 50.0  # pitch
-        Q[5, 5] = 50.0  # yaw
+            # Position weights
+            Q[0, 0] = pos.get("x", 100.0)
+            Q[1, 1] = pos.get("y", 100.0)
+            Q[2, 2] = pos.get("z", 200.0)
 
-        # Gimbal joint positions (indices 6 to nv-1) - light weight
-        for i in range(6, self.nv):
-            Q[i, i] = 1.0
+            # Orientation weights
+            Q[3, 3] = ori.get("roll", 50.0)
+            Q[4, 4] = ori.get("pitch", 50.0)
+            Q[5, 5] = ori.get("yaw", 50.0)
 
-        # Weight velocities (second half of state)
-        # Linear velocities
-        Q[self.nv + 0, self.nv + 0] = 10.0  # vx
-        Q[self.nv + 1, self.nv + 1] = 10.0  # vy
-        Q[self.nv + 2, self.nv + 2] = 10.0  # vz
+            # Gimbal joint positions
+            gimbal_pos_weight = qw.get("gimbal_pos", 1.0)
+            for i in range(6, self.nv):
+                Q[i, i] = gimbal_pos_weight
 
-        # Angular velocities
-        Q[self.nv + 3, self.nv + 3] = 5.0  # wx
-        Q[self.nv + 4, self.nv + 4] = 5.0  # wy
-        Q[self.nv + 5, self.nv + 5] = 5.0  # wz
+            # Velocity weights
+            Q[self.nv + 0, self.nv + 0] = vel.get("vx", 10.0)
+            Q[self.nv + 1, self.nv + 1] = vel.get("vy", 10.0)
+            Q[self.nv + 2, self.nv + 2] = vel.get("vz", 10.0)
 
-        # Gimbal joint velocities - light weight
-        for i in range(6, self.nv):
-            Q[self.nv + i, self.nv + i] = 0.1
+            # Angular velocity weights
+            Q[self.nv + 3, self.nv + 3] = ang.get("wx", 5.0)
+            Q[self.nv + 4, self.nv + 4] = ang.get("wy", 5.0)
+            Q[self.nv + 5, self.nv + 5] = ang.get("wz", 5.0)
+
+            # Gimbal joint velocities
+            gimbal_vel_weight = qw.get("gimbal_vel", 0.1)
+            for i in range(6, self.nv):
+                Q[self.nv + i, self.nv + i] = gimbal_vel_weight
+        else:
+            # Default weights
+            Q[0, 0] = 100.0  # x
+            Q[1, 1] = 100.0  # y
+            Q[2, 2] = 200.0  # z
+            Q[3, 3] = 50.0   # roll
+            Q[4, 4] = 50.0   # pitch
+            Q[5, 5] = 50.0   # yaw
+            for i in range(6, self.nv):
+                Q[i, i] = 1.0
+            Q[self.nv + 0, self.nv + 0] = 10.0  # vx
+            Q[self.nv + 1, self.nv + 1] = 10.0  # vy
+            Q[self.nv + 2, self.nv + 2] = 10.0  # vz
+            Q[self.nv + 3, self.nv + 3] = 5.0   # wx
+            Q[self.nv + 4, self.nv + 4] = 5.0   # wy
+            Q[self.nv + 5, self.nv + 5] = 5.0   # wz
+            for i in range(6, self.nv):
+                Q[self.nv + i, self.nv + i] = 0.1
 
         # Control weighting matrix R (nu x nu)
         R = np.eye(self.nu)
 
-        # Thrust actuators (indices 0-3) - moderate cost
-        for i in range(4):
-            R[i, i] = 0.01
+        if self.weights is not None:
+            rw = self.weights.get("R", {})
+            thrust_weight = rw.get("thrust", 0.01)
+            gimbal_weight = rw.get("gimbal", 0.1)
 
-        # Gimbal actuators (indices 4-11) - lower cost
-        for i in range(4, self.nu):
-            R[i, i] = 0.1
+            for i in range(4):
+                R[i, i] = thrust_weight
+            for i in range(4, self.nu):
+                R[i, i] = gimbal_weight
+        else:
+            for i in range(4):
+                R[i, i] = 0.01
+            for i in range(4, self.nu):
+                R[i, i] = 0.1
 
         # Solve discrete-time algebraic Riccati equation
         # P = A'PA - A'PB(R + B'PB)^{-1}B'PA + Q

@@ -17,6 +17,9 @@
   </asset>
 
   <worldbody>
+    <!-- Diffuse light -->
+    <light name="diffuse_light" pos="0 0 50" dir="0 0 -1" diffuse="0.3 0.3 0.3" specular="0.2 0.2 0.2" directional="true"/>
+
     <!-- Ground plane -->
     <geom name="ground" type="plane" size="10 10 0.1" material="grid"/>
 
@@ -80,20 +83,20 @@
 
   <actuator>
     <!-- Thrusters apply force in the +z direction (up) in body frame -->
-    <general name="thrust_fr" site="thruster_fr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
-    <general name="thrust_fl" site="thruster_fl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
-    <general name="thrust_rr" site="thruster_rr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
-    <general name="thrust_rl" site="thruster_rl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 500"/>
+    <general name="thrust_fr" site="thruster_fr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 1000"/>
+    <general name="thrust_fl" site="thruster_fl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 1000"/>
+    <general name="thrust_rr" site="thruster_rr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 1000"/>
+    <general name="thrust_rl" site="thruster_rl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 1000"/>
 
     <!-- Thruster gimbal actuators (position control) -->
-    <position name="pitch_fr" joint="thruster_fr_pitch" kp="100" ctrlrange="-0.785 0.785"/>
-    <position name="roll_fr" joint="thruster_fr_roll" kp="100" ctrlrange="-0.785 0.785"/>
-    <position name="pitch_fl" joint="thruster_fl_pitch" kp="100" ctrlrange="-0.785 0.785"/>
-    <position name="roll_fl" joint="thruster_fl_roll" kp="100" ctrlrange="-0.785 0.785"/>
-    <position name="pitch_rr" joint="thruster_rr_pitch" kp="100" ctrlrange="-0.785 0.785"/>
-    <position name="roll_rr" joint="thruster_rr_roll" kp="100" ctrlrange="-0.785 0.785"/>
-    <position name="pitch_rl" joint="thruster_rl_pitch" kp="100" ctrlrange="-0.785 0.785"/>
-    <position name="roll_rl" joint="thruster_rl_roll" kp="100" ctrlrange="-0.785 0.785"/>
+    <position name="pitch_fr" joint="thruster_fr_pitch" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
+    <position name="roll_fr" joint="thruster_fr_roll" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
+    <position name="pitch_fl" joint="thruster_fl_pitch" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
+    <position name="roll_fl" joint="thruster_fl_roll" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
+    <position name="pitch_rr" joint="thruster_rr_pitch" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
+    <position name="roll_rr" joint="thruster_rr_roll" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
+    <position name="pitch_rl" joint="thruster_rl_pitch" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
+    <position name="roll_rl" joint="thruster_rl_roll" kp="500" kv="5" ctrlrange="-0.785 0.785"/>
   </actuator>
 
   <sensor>
