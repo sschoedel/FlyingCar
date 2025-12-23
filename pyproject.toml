@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
+    "cvxpy>=1.4.0",
     "matplotlib>=3.10.8",
     "mujoco>=3.4.0",
+    "osqp>=0.6.0",
     "scipy>=1.16.3",
 ]

@@ -10,7 +10,8 @@ from matplotlib.figure import Figure
 from collections import deque
 import copy
 
-from LQR import FlyingCarLQR, load_lqr_weights, save_lqr_weights
+from controllers import FlyingCarLQR
+from controllers.base import load_controller_weights, save_controller_weights
 
 
 def add_thrust_arrow(viewer, site_id, thrust, max_thrust, data):
@@ -762,8 +763,8 @@ def main():
     # Get max thrust from actuator control range
     max_thrust = model.actuator_ctrlrange[0, 1]
 
-    # Load LQR weights from JSON
-    weights = load_lqr_weights("lqr_weights.json")
+    # Load controller weights from JSON
+    weights = load_controller_weights("lqr_weights.json")
 
     # Initialize LQR controller with weights
     controller = FlyingCarLQR(model, weights)
@@ -791,7 +792,7 @@ def main():
 
     def on_save(weights_to_save):
         """Callback to save weights to JSON."""
-        save_lqr_weights(weights_to_save, "lqr_weights.json")
+        save_controller_weights(weights_to_save, "lqr_weights.json")
 
     def on_new_target():
         """Set a new random target position and yaw (play mode)."""
