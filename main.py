@@ -143,6 +143,21 @@ class LQRTunerUI:
         self.plot_paused = False
         self.pause_after_reset = 0.5  # seconds
 
+        # State logging for tune mode
+        self.logged_data = {
+            'time': [],
+            'position': [],
+            'orientation': [],
+            'gimbal_pos': [],
+            'linear_vel': [],
+            'angular_vel': [],
+            'gimbal_vel': [],
+            'thrust_cmd': [],
+            'gimbal_cmd': [],
+            'target_pos': [],
+            'target_yaw': [],
+        }
+
         # Create tkinter window
         self.root = tk.Tk()
         self.root.title("LQR Tuner")
@@ -265,6 +280,7 @@ class LQRTunerUI:
         actions_frame.pack(side='left', fill='both', padx=5)
         ttk.Button(actions_frame, text="Reset Sim", command=self._on_reset_click).pack(fill='x', padx=5, pady=2)
         ttk.Button(actions_frame, text="Save JSON", command=self._on_save_click).pack(fill='x', padx=5, pady=2)
+        ttk.Button(actions_frame, text="Save Data", command=self._on_save_data_click).pack(fill='x', padx=5, pady=2)
 
         # Row 2: Q Velocity, Q Angular Vel, Q Gimbal, Test Scenario
         row2 = ttk.Frame(self.controls_frame)
@@ -467,6 +483,26 @@ class LQRTunerUI:
         self.on_save(self.weights)
         print("Weights saved to lqr_weights.json")
 
+    def _on_save_data_click(self):
+        """Save logged state data to npz file."""
+        if not self.logged_data['time']:
+            print("No data to save. Run a test first.")
+            return
+
+        # Convert lists to numpy arrays
+        data_to_save = {}
+        for key, value in self.logged_data.items():
+            if value:
+                data_to_save[key] = np.array(value)
+
+        # Generate filename with timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"flight_data_{timestamp}.npz"
+
+        np.savez(filename, **data_to_save)
+        print(f"Data saved to {filename} ({len(self.logged_data['time'])} samples)")
+
     def _on_mode_toggle(self):
         """Toggle between tune and play modes."""
         if self.mode == "tune":
@@ -517,19 +553,51 @@ class LQRTunerUI:
         self.ax_gimbal_plot.set_xlim(0, self.time_window)
         self.step_count = 0
         self.plot_paused = False
+
+        # Clear logged state data
+        for key in self.logged_data:
+            self.logged_data[key] = []
+
         self.canvas.draw()
 
-    def update_plot(self, t, ctrl, gimbal_angles, gimbal_cmd):
-        """Add new data point and update plot periodically."""
+    def update_plot(self, t, ctrl, gimbal_angles, gimbal_cmd, qpos=None, qvel=None, target_pos=None, target_yaw=None):
+        """Add new data point and update plot periodically.
+
+        Args:
+            t: Simulation time
+            ctrl: Control inputs (12 values: 4 thrusts + 8 gimbal commands)
+            gimbal_angles: Actual gimbal joint angles (8 values)
+            gimbal_cmd: Commanded gimbal angles (8 values)
+            qpos: Full position state (optional, for logging)
+            qvel: Full velocity state (optional, for logging)
+            target_pos: Target position (optional, for logging)
+            target_yaw: Target yaw angle (optional, for logging)
+        """
         if self.plot_paused:
             return
 
         self.times.append(t)
         for i in range(4):
-            self.thrusts[i].append(ctrl[i])
+            self.thrusts[i].append(ctrl[i])  # First 4 are thrust commands
         for i in range(8):
             self.gimbal_angles[i].append(np.degrees(gimbal_angles[i]))
             self.gimbal_cmd_angles[i].append(np.degrees(gimbal_cmd[i]))
+
+        # Log full state in tune mode
+        if self.mode == "tune" and qpos is not None and qvel is not None:
+            self.logged_data['time'].append(t)
+            self.logged_data['position'].append(qpos[0:3].copy())
+            self.logged_data['orientation'].append(qpos[3:7].copy())
+            self.logged_data['gimbal_pos'].append(qpos[7:15].copy())
+            self.logged_data['linear_vel'].append(qvel[0:3].copy())
+            self.logged_data['angular_vel'].append(qvel[3:6].copy())
+            self.logged_data['gimbal_vel'].append(qvel[6:14].copy())
+            self.logged_data['thrust_cmd'].append(ctrl[0:4].copy())
+            self.logged_data['gimbal_cmd'].append(ctrl[4:12].copy())
+            if target_pos is not None:
+                self.logged_data['target_pos'].append(target_pos.copy())
+            if target_yaw is not None:
+                self.logged_data['target_yaw'].append(target_yaw)
 
         # Check if we should pause (only in tune mode)
         if self.mode == "tune" and t >= self.pause_after_reset:
@@ -823,7 +891,9 @@ def main():
                 # Commanded gimbal angles are ctrl[4:12]
                 gimbal_angles = data.qpos[7:15]
                 gimbal_cmd = data.ctrl[4:12]
-                tuner.update_plot(data.time, data.ctrl[:4], gimbal_angles, gimbal_cmd)
+                tuner.update_plot(data.time, data.ctrl, gimbal_angles, gimbal_cmd,
+                                  qpos=data.qpos, qvel=data.qvel,
+                                  target_pos=target_pos, target_yaw=target_yaw)
 
                 # Process tkinter events
                 tuner.update()

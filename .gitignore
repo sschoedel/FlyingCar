@@ -24,4 +24,7 @@ Thumbs.db
 
 # Notes
 NOTES.md
+
+# Logs
 MUJOCO_LOG.TXT
+flight_data_*.npz
