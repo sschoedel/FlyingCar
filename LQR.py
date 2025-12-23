@@ -305,7 +305,7 @@ class FlyingCarLQR:
         """
         Compute orientation error in tangent space (3D).
 
-        Returns approximate roll, pitch, yaw error for small angles.
+        Returns exact axis-angle error vector using atan2 formula.
         """
         # quat = [w, x, y, z]
         w, x, y, z = quat
@@ -320,13 +320,27 @@ class FlyingCarLQR:
         y_e = w_d * y + x_d * z - y_d * w - z_d * x
         z_e = w_d * z - x_d * y + y_d * x - z_d * w
 
-        # Convert to axis-angle (for small angles: 2 * [x, y, z] component)
-        # This gives approximately [roll, pitch, yaw] for small rotations
+        # Take shorter path (ensure w_e >= 0)
         if w_e < 0:
-            # Take shorter path
+            w_e = -w_e
             x_e, y_e, z_e = -x_e, -y_e, -z_e
 
-        return 2.0 * np.array([x_e, y_e, z_e])
+        # Convert to axis-angle using exact atan2 formula
+        # For quaternion [w, x, y, z]: sin(θ/2) = ||[x,y,z]||, cos(θ/2) = w
+        axis = np.array([x_e, y_e, z_e])
+        sin_half_angle = np.linalg.norm(axis)
+
+        if sin_half_angle < 1e-10:
+            # Near-zero rotation, avoid division by zero
+            return np.zeros(3)
+
+        # Normalize axis
+        axis = axis / sin_half_angle
+
+        # Compute angle: θ = 2 * atan2(sin(θ/2), cos(θ/2))
+        angle = 2.0 * np.arctan2(sin_half_angle, w_e)
+
+        return axis * angle
 
     def _quat_to_rot_matrix(self, quat):
         """
